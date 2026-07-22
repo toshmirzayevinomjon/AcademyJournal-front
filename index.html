@@ -9,6 +9,7 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="stylesheet" href="/style.css">
+<script src="/env.js"></script>
 <title>Davomat Jurnali</title>
 </head>
 <body>
@@ -220,7 +221,7 @@
 <div class="ptr-indicator" id="ptrIndicator"><span class="ptr-spinner"></span> Yangilanmoqda...</div>
 
 <script>
-const API_URL = '';
+const API_URL = window.API_URL || '';
 const COLORS = ['#4F46E5','#059669','#DC2626','#D97706','#7C3AED','#DB2777','#0284C7','#65A30D'];
 const DAY_NAMES = ['Yak','Du','Se','Cho','Pay','Jum','Shan'];
 const LANG = {uz:{app:'Davomat Jurnali',groups:'Guruhlar',students:'O\'quvchilar',add:'Qo\'shish',search:'Qidirish',edit:'Tahrirlash',delete:'O\'chirish',save:'Saqlash',cancel:'Bekor qilish',close:'Yopish',present:'Keldi',absent:'Kelmadi',late:'Kechikdi',excused:'Sababli',allPresent:'Hammasi keldi',allAbsent:'Hammasi kelmadi',allLate:'Hammasi kechikdi',allExcused:'Hammasi sababli',clear:'Tozalash',sort:'Saralash',name:'Ism',date:'Sana',stats:'Statistika',ranking:'Reyting',worstDays:'Eng yomon kunlar',chart:'Grafik',export:'Export',import:'Import',print:'Chop etish',theme:'Tema',more:'Ko\'proq',logout:'Chiqish',login:'Kirish',noData:'Ma\'lumot yo\'q',loading:'Yuklanmoqda...',error:'Xatolik',success:'Muvaffaqiyatli',today:'Bugun',monthly:'Oylik hisobot',qr:'QR kod',photo:'Rasm',upload:'Yuklash',saveAttendance:'Davomatni saqlash',studentCount:'o\'quvchi',groupCount:'guruh',dayCount:'kun',total:'Jami',overall:'Umumiy',confirm:'Tasdiqlaysizmi?',searchStudents:'O\'quvchilarni qidirish',searchGroups:'Guruhlarni qidirish',addGroup:'Guruh qo\'shish',addStudent:'O\'quvchi qo\'shish',groupName:'Guruh nomi',studentName:'O\'quvchi ismi'},
@@ -230,7 +231,13 @@ let _lang = localStorage.getItem('davomatLang') || 'uz';
 function __(k){return LANG[_lang]?.[k]||k;}
 let ws = null;
 function connectWs(){
-  try{ws=new WebSocket(`ws://${location.host}/ws`);ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.type==='attendance_update'&&currentGroupId)renderGroup()}catch(_){}};ws.onclose=()=>setTimeout(connectWs,3000)}catch(_){}
+  try{
+    const apiHost = API_URL ? API_URL.replace(/^https?:\/\//, '').replace(/\/$/, '') : location.host;
+    const protocol = (API_URL && API_URL.startsWith('https')) || (!API_URL && location.protocol === 'https:') ? 'wss' : 'ws';
+    ws=new WebSocket(`${protocol}://${apiHost}/ws`);
+    ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.type==='attendance_update'&&currentGroupId)renderGroup()}catch(_){}};
+    ws.onclose=()=>setTimeout(connectWs,3000)
+  }catch(_){}
 }
 let currentGroupId = null, currentDate = '', editTarget = null, statsData = null, profileStudentId = null;
 let studentSortBy = 'name', groupSearchTerm = '', studentSearchTerm = '', attendanceFilter = 'all';
